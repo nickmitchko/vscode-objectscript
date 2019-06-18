@@ -21,7 +21,7 @@ async function importFile(file: CurrentFile): Promise<any> {
     .putDoc(
       file.name,
       {
-        content: file.content.split(/\r?\n/),
+        content: modernToObjectScript(file.content).split(/\r?\n/),
         enc: false,
       },
       true,
@@ -55,6 +55,27 @@ async function loadChanges(files: CurrentFile[]): Promise<any> {
   );
 }
 
+// performs various transpiling steps to ingest modernized data and convert to object script precompilation.
+// Honestly, this needs to be done in an abstract syntax tree but who cares for thr initial testing of the concept.
+// I will probably make this 
+function modernToObjectScript(sourceData: string): string {
+  if (sourceData.includes('[ syntax = modern') ) {
+    // remove the initial syntax=modern variables
+    let modifiedSource = sourceData.replace(/syntax = modern/g, '');
+    // handle the implicit set syntax
+    let modifiedSource = sourceData.replace(/\n\s*[^(SET)|(set)|(Set)]\w+\s*=\s*.*/g, function (x) {
+        return x.replace(/\n\s*[^(SET)|(set)|(Set)]/g, function (c) {return c + " SET ";});
+    });
+    // handle the implicit class method syntax
+    let modifiedSource = sourceData.replace(/\n\s*[^(DO)|(Do)|(do)|(\&sql)]\w+(\.\w+){0,1}\(.*\)/g, function (x) {
+        return x.replace(/\n\s*[^(DO)|(Do)|(do)|(\&sql)]/g, function (c) {return c + " DO ";});
+    });
+    return modifiedSource;
+  } else {
+    return sourceData;
+  }
+}
+
 async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
   flags = flags || config("compileFlags");
   const api = new AtelierAPI(docs[0].uri);
@@ -65,7 +86,7 @@ async function compile(docs: CurrentFile[], flags?: string): Promise<any> {
       if (data.status && data.status.errors && data.status.errors.length) {
         throw new Error(`${info}Compile error`);
       } else {
-        vscode.window.showInformationMessage(`${info}Compile successed`, "Hide");
+        vscode.window.showInformationMessage(`${info}Compile succeeded`, "Hide");
       }
       return docs;
     })
