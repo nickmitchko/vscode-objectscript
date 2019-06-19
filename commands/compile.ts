@@ -17,6 +17,7 @@ async function compileFlags(): Promise<string> {
 
 async function importFile(file: CurrentFile): Promise<any> {
   const api = new AtelierAPI(file.uri);
+  console.log(modernToObjectScript(file.content));
   return api
     .putDoc(
       file.name,
@@ -59,19 +60,23 @@ async function loadChanges(files: CurrentFile[]): Promise<any> {
 // Honestly, this needs to be done in an abstract syntax tree but who cares for thr initial testing of the concept.
 // I will probably make this 
 function modernToObjectScript(sourceData: string): string {
-  if (sourceData.includes('[ syntax = modern') ) {
+  if (sourceData.includes('// syntax = modern') ) {
     // remove the initial syntax=modern variables
-    let modifiedSource = sourceData.replace(/syntax = modern/g, '');
+    var modifiedSource = sourceData;
     // handle the implicit set syntax
-    let modifiedSource = sourceData.replace(/\n\s*[^(SET)|(set)|(Set)]\w+\s*=\s*.*/g, function (x) {
-        return x.replace(/\n\s*[^(SET)|(set)|(Set)]/g, function (c) {return c + " SET ";});
+    modifiedSource = modifiedSource.replace(/\n\s*[^(SET)|(set)|(Set)]\w+(\.\w+)*\s*=\s*.*/g, function (x) {
+        return x.replace(/\n\s*/g, function (c) {return c + "SET ";});
     });
     // handle the implicit class method syntax
-    let modifiedSource = sourceData.replace(/\n\s*[^(DO)|(Do)|(do)|(\&sql)]\w+(\.\w+){0,1}\(.*\)/g, function (x) {
-        return x.replace(/\n\s*[^(DO)|(Do)|(do)|(\&sql)]/g, function (c) {return c + " DO ";});
+    modifiedSource = modifiedSource.replace(/\n\s*[^(DO)|(Do)|(do)|(\&sql)]\w+(\.\w+)*\(.*\)/g, function (x) {
+        console.log(x);
+        return x.replace(/\n\s*/g, function (c) {return c + "DO ";});
     });
+    console.log("NikoScript");
     return modifiedSource;
+    
   } else {
+    console.log("ObjectScript");
     return sourceData;
   }
 }
