@@ -2,16 +2,20 @@
   "name": "vscode-objectscript",
   "displayName": "InterSystems ObjectScript",
   "description": "InterSystems ObjectScript language support for Visual Studio Code",
-  "version": "0.7.12-snapshot",
+  "version": "0.8.2-SNAPSHOT",
   "icon": "images/logo.png",
+  "aiKey": "7047c4a1-fc13-43ea-a485-01a74ff0b2af",
   "categories": [
     "Programming Languages",
     "Other",
-    "Snippets"
+    "Snippets",
+    "Debuggers",
+    "Formatters"
   ],
   "keywords": [
     "objectscript",
-    "intersystems"
+    "intersystems",
+    "debug"
   ],
   "repository": {
     "type": "git",
@@ -35,9 +39,11 @@
     }
   ],
   "engines": {
-    "vscode": "^1.31.0"
+    "vscode": "^1.41.0"
   },
+  "enableProposedApi": true,
   "activationEvents": [
+    "onDebug",
     "workspaceContains:*.cls",
     "workspaceContains:*.mac",
     "onCommand:vscode-objectscript.export",
@@ -110,12 +116,20 @@
           "when": "false"
         },
         {
+          "command": "vscode-objectscript.explorer.compile",
+          "when": "false"
+        },
+        {
           "command": "vscode-objectscript.explorer.refresh",
           "when": "vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "false"
+        },
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "vscode-objectscript.connectActive && resourceScheme == isfs"
         }
       ],
       "view/title": [
@@ -139,14 +153,26 @@
           "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
         },
         {
+          "command": "vscode-objectscript.explorer.compile",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^dataNode:/"
+        },
+        {
           "command": "vscode-objectscript.explorer.otherNamespace",
-          "when": "view == ObjectScriptExplorer && viewItem == serverNode",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:extra:).)*$/",
           "group": "inline"
         },
         {
           "command": "vscode-objectscript.explorer.otherNamespaceClose",
-          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNodeExtra:/",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode:extra:/",
           "group": "inline"
+        },
+        {
+          "command": "vscode-objectscript.explorer.showGenerated",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode((?!:generated:).)*$/"
+        },
+        {
+          "command": "vscode-objectscript.explorer.hideGenerated",
+          "when": "view == ObjectScriptExplorer && viewItem =~ /^serverNode.*:generated:/"
         }
       ],
       "editor/context": [
@@ -157,6 +183,10 @@
         {
           "command": "vscode-objectscript.compile",
           "when": "editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "resourceScheme == isfs && editorLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         },
         {
           "command": "vscode-objectscript.previewXml",
@@ -179,6 +209,10 @@
         {
           "command": "vscode-objectscript.compileFolder",
           "when": "vscode-objectscript.connectActive"
+        },
+        {
+          "command": "vscode-objectscript.studio.actions",
+          "when": "resourceScheme == isfs && resourceLangId =~ /^objectscript/ && vscode-objectscript.connectActive"
         }
       ]
     },
@@ -191,8 +225,7 @@
         "extensions": [
           ".mac",
           ".int"
-        ],
-        "configuration": "./language-configuration.json"
+        ]
       },
       {
         "id": "objectscript-class",
@@ -201,8 +234,7 @@
         ],
         "extensions": [
           ".cls"
-        ],
-        "configuration": "./language-configuration-class.jsonc"
+        ]
       },
       {
         "id": "objectscript-macros",
@@ -211,8 +243,7 @@
         ],
         "extensions": [
           ".inc"
-        ],
-        "configuration": "./language-configuration.json"
+        ]
       },
       {
         "id": "objectscript-csp",
@@ -301,22 +332,37 @@
       {
         "command": "vscode-objectscript.explorer.export",
         "title": "Export",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespace",
         "title": "View another namespace",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.showGenerated",
+        "title": "Show generated",
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.hideGenerated",
+        "title": "Hide generated",
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.otherNamespaceClose",
         "title": "Close namespace",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.delete",
         "title": "Delete",
-        "category": "ObjecScript"
+        "category": "ObjectScript"
+      },
+      {
+        "command": "vscode-objectscript.explorer.compile",
+        "title": "Compile",
+        "category": "ObjectScript"
       },
       {
         "command": "vscode-objectscript.explorer.refresh",
@@ -359,6 +405,11 @@
         "category": "ObjectScsript",
         "command": "vscode-objectscript.compileFolder",
         "title": "Import and compile"
+      },
+      {
+        "category": "ObjectScript",
+        "command": "vscode-objectscript.studio.actions",
+        "title": "Studio actions"
       }
     ],
     "keybindings": [
@@ -395,11 +446,6 @@
           "type": "boolean",
           "default": false
         },
-        "objectscript.conn.label": {
-          "description": "Server Name",
-          "type": "string",
-          "default": "LOCAL"
-        },
         "objectscript.conn.host": {
           "description": "Hostname",
           "format": "hostname",
@@ -409,7 +455,7 @@
         "objectscript.conn.port": {
           "description": "Port number",
           "type": "number",
-          "default": 57772
+          "default": 52773
         },
         "objectscript.conn.username": {
           "description": "Username",
@@ -426,17 +472,32 @@
           "type": "string",
           "default": "USER"
         },
-        "objectscript.conn.version": {
-          "description": "API Version number",
-          "type": "number",
-          "default": 3,
-          "readOnly": true,
-          "deprecationMessage": "This value loads from server"
-        },
         "objectscript.conn.https": {
           "description": "Use SSL to access to API",
           "type": "boolean",
           "default": false
+        },
+        "objectscript.conn.docker-compose": {
+          "description": "Connect to server running in docker-compose",
+          "type": "object"
+        },
+        "objectscript.conn.docker-compose.service": {
+          "description": "Name of service in docker-compose",
+          "type": "string"
+        },
+        "objectscript.conn.docker-compose.internalPort": {
+          "description": "Target port inside the service in docker-compose",
+          "type": "number",
+          "default": 52773
+        },
+        "objectscript.conn.docker-compose.file": {
+          "description": "docker-compose file",
+          "type": "string",
+          "default": "docker-compose.yml"
+        },
+        "objectscript.conn.links": {
+          "description": "Extra links for the server",
+          "type": "object"
         },
         "objectscript.export": {
           "type": "object",
@@ -472,16 +533,12 @@
           "default": ""
         },
         "objectscript.export.category": {
-          "description": "Specifies a category: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
-          "type": "string",
+          "description": "Specifies a category to export: CLS = classes; RTN = routines; CSP = csp files; OTH = other. Default is *",
+          "type": [
+            "string",
+            "object"
+          ],
           "default": "*"
-        },
-        "objectscript.autoCompile": {
-          "description": "Autocompile on save file",
-          "type": "boolean",
-          "default": false,
-          "deprecationMessage": "Always enabled, now, when connection is active",
-          "scope": "resource"
         },
         "objectscript.showExplorer": {
           "type": "boolean",
@@ -512,6 +569,51 @@
           "description": "Max Export Connections (0 = Unlimited)",
           "type": "number",
           "default": 0
+        },
+        "objectscript.format": {
+          "type": "object",
+          "description": "Formatting settings"
+        },
+        "objectscript.format.commandCase": {
+          "anyOf": [
+            "word",
+            "upper",
+            "lower"
+          ],
+          "default": "word",
+          "description": "Case for commands"
+        },
+        "objectscript.format.functionCase": {
+          "anyOf": [
+            "word",
+            "upper",
+            "lower"
+          ],
+          "default": "word",
+          "description": "Case for system functions/variables"
+        },
+        "objectscript.suppressCompileMessages": {
+          "default": true,
+          "type": "boolean",
+          "description": "Suppress popup messages about successful compile"
+        },
+        "objectscript.suppressCompileErrorMessages": {
+          "default": false,
+          "type": "boolean",
+          "description": "Suppress popup messages about errors during compile, but keep focus on Output view"
+        },
+        "objectscript.serverSideEditing": {
+          "default": false,
+          "type": "boolean",
+          "description": "Allow to edit code directly on server"
+        },
+        "objectscript.debug": {
+          "type": "object"
+        },
+        "objectscript.debug.debugThisMethod": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show `Debug this method` action for ClassMethods"
         }
       }
     },
@@ -520,7 +622,7 @@
         {
           "id": "ObjectScriptExplorer",
           "name": "Explorer",
-          "when": "config.objectscript.showExplorer == true"
+          "when": "workspaceFolderCount != 0 && config.objectscript.showExplorer == true"
         }
       ]
     },
@@ -532,37 +634,124 @@
           "title": "ObjectScript"
         }
       ]
-    }
+    },
+    "breakpoints": [
+      {
+        "language": "objectscript"
+      },
+      {
+        "language": "objectscript-class"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "objectscript",
+        "label": "ObjectScript Debug",
+        "program": "./out/debug/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "required": [],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Class or routine to debug."
+              }
+            }
+          },
+          "attach": {
+            "required": [],
+            "properties": {
+              "processId": {
+                "type": [
+                  "number",
+                  "string"
+                ],
+                "description": "ID of process to attach to.",
+                "default": "${command:PickProcess}"
+              },
+              "system": {
+                "type": "boolean",
+                "description": "Enable to attach to system process.",
+                "default": false
+              }
+            }
+          }
+        },
+        "variables": {
+          "PickProcess": "vscode-objectscript.pickProcess"
+        },
+        "initialConfigurations": [
+          {
+            "type": "objectscript",
+            "request": "launch",
+            "name": "XDebug"
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "ObjectScript Debug: Run current routine",
+            "description": "A new configuration for 'debugging' a user selected ObjectScript routine.",
+            "body": {
+              "type": "objectscript",
+              "request": "launch",
+              "name": "ObjectScript Run current routine",
+              "program": "^\"\\${file}\""
+            }
+          }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "package": "vsce package",
     "compile": "tsc -p ./",
     "watch": "tsc -w -p ./tsconfig.json",
-    "test": "npm run compile && node ./node_modules/vscode/bin/test",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
     "lint": "node ./node_modules/tslint/bin/tslint --project tsconfig.json -t verbose",
-    "lint-fix": "tslint --project tsconfig.json -t verbose --fix",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "lint-fix": "tslint --project tsconfig.json -t verbose --fix"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.0.7",
-    "@types/request": "^2.48.1",
-    "@types/request-promise": "^4.1.44",
-    "eslint": "^5.16.0",
+    "@types/node": "^12.12.26",
+    "@types/request": "^2.48.4",
+    "@types/request-promise": "^4.1.45",
+    "@types/vscode": "^1.41.0",
+    "@types/ws": "^6.0.4",
+    "@types/xmldom": "^0.1.29",
+    "@typescript-eslint/eslint-plugin": "^2.19.0",
+    "@typescript-eslint/parser": "^2.19.0",
+    "eslint": "^6.8.0",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-config-prettier": "^6.10.0",
+    "eslint-plugin-import": "^2.20.1",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-node": "^10.0.0",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-promise": "^4.2.1",
     "extend": "^3.0.2",
-    "tape": "^4.10.2",
-    "tslint": "^5.17.0",
-    "tslint-microsoft-contrib": "^6.2.0",
-    "typescript": "^3.5.1",
-    "vsce": "^1.62.0",
-    "vscode": "^1.1.34"
+    "mocha": "^6.2.2",
+    "prettier": "^1.19.1",
+    "tape": "^4.13.0",
+    "typescript": "^3.7.5",
+    "vsce": "^1.73.0",
+    "vscode-debugadapter-testsupport": "^1.40.1",
+    "vscode-test": "^1.3.0"
   },
   "dependencies": {
-    "glob": "^7.1.4",
+    "await-notify": "^1.0.1",
+    "glob": "^7.1.6",
+    "iconv-lite": "^0.5.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4",
-    "vscode-cache": "^0.3.0"
+    "request-promise": "^4.2.5",
+    "vscode-cache": "^0.3.0",
+    "vscode-debugadapter": "^1.38.0",
+    "vscode-debugprotocol": "^1.38.0",
+    "vscode-extension-telemetry": "^0.1.2",
+    "ws": "^7.2.1",
+    "xmldom": "^0.1.31"
   }
 }

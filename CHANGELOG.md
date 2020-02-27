@@ -1,13 +1,31 @@
 # Change Log
 
+## [0.8.0]
+- "Debug this ClassMethod" feature added, to quickly debug any classmethod in a class
+- Change variable value while debugging
+- When virtual filesystem `isfs://` used, now possible to execute some actions from Studio Source class menu
+- Explorer view, new way of generation, should be faster now
+- Explorer view, INC files now separate in own Includes folder
+- Explorer view, option to show/hide generated items
+- Explorer view will be shown only when any folder open
+- When used docker-compose to run instance, it's now possible to get connected to a random port from service.
+- When used docker-compose it's now very easy to connect to terminal
+- Go to routine
+- Show warning for deprecated functions, quick fix for `$zobj<xxx>` functions replaced
+
 ## [0.7.12]
 
-- Files in Server Explorer now can be edited.
-- Added more details about connection errors.
-- Improvements in Server Explorer build tree.
-- Fixed memory leak when exporting large amount of files.
-- Some other fixes
+- **Debugging support, run routine, class or attach to a process**
+- **Files in Server Explorer now can be edited**
+- Added more details about connection errors
+- Improvements in Server Explorer build tree
+- Fixed memory leak when exporting large amount of files
 - Server view can be opened in explorer as virtual file system with schema `isfs://`
+- Option to suppress popup information message about successful compile
+- Export, addCategory setting have more flexibility in naming category for exported items
+- Formatting for commands and functions, as Word, UPPER or lower
+- Some improvements in syntax highlighting
+- Some other small fixes
 
 ## [0.7.11]
 
